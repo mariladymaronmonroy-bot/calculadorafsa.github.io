@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Sistema FSA - Cuna Más</title>
+
+<style>
+body{
+    font-family: Arial, sans-serif;
+    background:#eef2f7;
+    margin:0;
+    padding:0;
+}
+
+/* HEADER */
+header{
+    background:#0d6efd;
+    color:white;
+    padding:20px;
+    text-align:center;
+}
+
+header h1{
+    margin:0;
+    font-size:22px;
+}
+
+.container{
+    max-width:1100px;
+    margin:auto;
+    padding:20px;
+}
+
+/* PANEL */
+.panel{
+    background:white;
+    padding:15px;
+    border-radius:12px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom:20px;
+    text-align:center;
+}
+
+/* INPUT */
+input, button{
+    padding:10px;
+    font-size:16px;
+    margin:5px;
+}
+
+button{
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.btn-primary{background:#0d6efd;color:white;}
+.btn-success{background:#28a745;color:white;}
+.btn-secondary{background:#6c757d;color:white;}
+
+/* TABLA */
+table{
+    width:100%;
+    border-collapse:collapse;
+    background:white;
+    border-radius:10px;
+    overflow:hidden;
+    box-shadow:0 2px 10px rgba(0,0,0,0.1);
+}
+
+th{
+    background:#343a40;
+    color:white;
+    padding:12px;
+    font-size:14px;
+}
+
+td{
+    padding:10px;
+    border-bottom:1px solid #ddd;
+    font-size:14px;
+    text-align:center;
+}
+
+tr:hover{
+    background:#f1f5ff;
+}
+
+/* BADGES */
+.badge{
+    padding:5px 10px;
+    border-radius:8px;
+    color:white;
+    font-weight:bold;
+    display:inline-block;
+}
+
+.green{background:#28a745;}
+.yellow{background:#ffc107;color:black;}
+.red{background:#dc3545;}
+
+footer{
+    text-align:center;
+    margin-top:20px;
+    color:#666;
+    font-size:12px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>🧒 SISTEMA FSA - CUNA MÁS / UT MOQUEGUA</h1>
+</header>
+
+<div class="container">
+
+<div class="panel">
+    <h3>📅 Seleccione fecha de nacimiento</h3>
+    <input type="date" id="fecha">
+    <button class="btn-primary" onclick="calcular()">Calcular FSA</button>
+    <button class="btn-secondary" onclick="limpiar()">Limpiar</button>
+    <!-- <button class="btn-success" onclick="exportarCSV()">Exportar CSV</button> -->
+</div>
+
+<div id="tabla"></div>
+
+</div>
+
+<footer>
+Sistema institucional FSA - Versión producción
+</footer>
+
+<script>
+
+function addMonths(date, months){
+    let d = new Date(date);
+    let day = d.getDate();
+    d.setMonth(d.getMonth() + months);
+    if(d.getDate() !== day) d.setDate(0);
+    return d;
+}
+
+function format(d){
+    const fecha = new Date(d.getTime());
+
+    const dia = String(fecha.getDate()).padStart(2,'0');
+    const mes = String(fecha.getMonth()+1).padStart(2,'0');
+    const anio = fecha.getFullYear();
+
+    return `${dia}/${mes}/${anio}`;
+}
+
+function estado(inicio, fin){
+    let hoy = new Date();
+    if(hoy < inicio) return {text:"🟡 Próximo", color:"yellow"};
+    if(hoy > fin) return {text:"🔴 Vencido", color:"red"};
+    return {text:"🟢 En plazo", color:"green"};
+}
+
+let dataGlobal = [];
+
+function calcular(){
+
+    let f = document.getElementById("fecha").value;
+    if(!f) return;
+
+    const [anio, mes, dia] = f.split("-").map(Number);
+    let base = new Date(anio, mes - 1, dia);
+
+    const fsas = [
+        {name:"FSA 2 meses", n:2, special:false},
+        {name:"FSA 4 meses", n:4, special:false},
+        {name:"FSA 6 meses", n:6, special:false},
+        {name:"FSA 9 meses", n:9, special:false},
+        {name:"FSA 12 meses", n:12, special:true},
+        {name:"FSA 18 meses", n:18, special:false},
+        {name:"FSA 24 meses", n:24, special:true}
+    ];
+
+    let html = `
+    <table>
+        <tr>
+            <th>Hito</th>
+            <th>📌 Fecha Hito</th>
+            <th>🟢 Fecha Mínima FSA</th>
+            <th>🔴 Fecha Máxima FSA</th>
+            <th>Estado</th>
+        </tr>
+    `;
+
+    dataGlobal = [];
+
+    fsas.forEach(fsa => {
+
+        let hito, inicio, fin;
+
+        if(fsa.special){
+            hito = addMonths(base, fsa.n);
+            inicio = new Date(hito);
+            fin = new Date(hito);
+            fin.setDate(fin.getDate() + 7);
+        }else{
+            hito = addMonths(base, fsa.n + 1);
+            inicio = new Date(hito);
+            inicio.setDate(inicio.getDate() - 7);
+            fin = new Date(hito);
+            fin.setDate(fin.getDate() - 1);
+        }
+
+        let st = estado(inicio, fin);
+
+        dataGlobal.push({
+            hito: fsa.name,
+            fecha_hito: format(hito),
+            inicio: format(inicio),
+            fin: format(fin),
+            estado: st.text
+        });
+
+        html += `
+        <tr>
+            <td>${fsa.name}</td>
+            <td>📌 ${format(hito)}</td>
+            <td>🟢 ${format(inicio)}</td>
+            <td>🔴 ${format(fin)}</td>
+            <td><span class="badge ${st.color}">${st.text}</span></td>
+        </tr>
+        `;
+    });
+
+    html += "</table>";
+
+    document.getElementById("tabla").innerHTML = html;
+}
+
+function limpiar(){
+    document.getElementById("fecha").value = "";
+    document.getElementById("tabla").innerHTML = "";
+}
+
+function exportarCSV(){
+
+    if(dataGlobal.length === 0) return;
+
+    let csv = "Hito,Fecha Hito,Inicio,Fin,Estado\n";
+
+    dataGlobal.forEach(r=>{
+        csv += `${r.hito},${r.fecha_hito},${r.inicio},${r.fin},${r.estado}\n`;
+    });
+
+    let blob = new Blob([csv], {type:"text/csv"});
+    let url = URL.createObjectURL(blob);
+
+    let a = document.createElement("a");
+    a.href = url;
+    a.download = "FSA_CunaMas.csv";
+    a.click();
+}
+
+</script>
+
+</body>
+</html>
