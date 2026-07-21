@@ -148,3 +148,159 @@ footer{
 <footer>
 Sistema institucional FSA - Versión producción
 </footer>
+
+<script>
+
+function addMonths(date, months){
+    let d = new Date(date);
+    let day = d.getDate();
+    d.setMonth(d.getMonth() + months);
+    if(d.getDate() !== day) d.setDate(0);
+    return d;
+}
+
+function format(d){
+    const fecha = new Date(d.getTime());
+
+    const dia = String(fecha.getDate()).padStart(2,'0');
+    const mes = String(fecha.getMonth()+1).padStart(2,'0');
+    const anio = fecha.getFullYear();
+
+    return `${dia}/${mes}/${anio}`;
+}
+
+function estado(inicio, fin){
+
+    let hoy = new Date();
+
+    // quitar horas
+    hoy.setHours(0,0,0,0);
+
+    inicio = new Date(inicio);
+    inicio.setHours(0,0,0,0);
+
+    fin = new Date(fin);
+    fin.setHours(0,0,0,0);
+
+    if(hoy < inicio)
+        return {text:"🟡 Próximo", color:"yellow"};
+
+    if(hoy > fin)
+        return {text:"🔴 Vencido", color:"red"};
+
+    return {text:"🟢 En plazo", color:"green"};
+}
+
+let dataGlobal = [];
+
+function calcular(){
+
+    let f = document.getElementById("fecha").value;
+    if(!f) return;
+
+    const [anio, mes, dia] = f.split("-").map(Number);
+    let base = new Date(anio, mes - 1, dia);
+
+    const fsas = [
+        {name:"FSA 2 meses: Aplicar durante los 7 días previos a que cumpla los 3 meses", n:2, special:false},
+        {name:"FSA 4 meses: Aplicar durante los 7 días previos a que cumpla los 5 meses", n:4, special:false},
+        {name:"FSA 6 meses: Aplicar durante los 7 días previos a que cumpla los 7 meses", n:6, special:false},
+        {name:"FSA 9 meses: Aplicar durante los 7 días previos a que cumpla los 10 meses", n:9, special:false},
+        {name:"FSA 12 meses: Aplicar en su fecha de cumpleaños o preferentemente hasta 7 días más", n:12, special:true},
+        {name:"FSA 18 meses: Aplicar durante los 7 días previos a que cumpla los 19 meses", n:18, special:false},
+        {name:"FSA 24 meses: Aplicar en su fecha de cumpleaños o preferentemente hasta 7 días más", n:24, special:true}
+    ];
+
+    let html = `
+    <table>
+        <tr>
+            <th>Hito</th>
+            <th>📌 Fecha Hito</th>
+            <th>🟢 Fecha Mínima FSA</th>
+            <th>🔴 Fecha Máxima FSA</th>
+            <th>Estado</th>
+        </tr>
+    `;
+
+    dataGlobal = [];
+
+    fsas.forEach(fsa => {
+
+        let hito, inicio, fin;
+
+        if(fsa.special){
+            hito = addMonths(base, fsa.n);
+            inicio = new Date(hito);
+            fin = new Date(hito);
+            fin.setDate(fin.getDate() + 7);
+        }else{
+            hito = addMonths(base, fsa.n + 1);
+            inicio = new Date(hito);
+            inicio.setDate(inicio.getDate() - 7);
+            fin = new Date(hito);
+            fin.setDate(fin.getDate() - 1);
+        }
+
+        let st = estado(inicio, fin);
+
+        dataGlobal.push({
+            hito: fsa.name,
+            fecha_hito: format(hito),
+            inicio: format(inicio),
+            fin: format(fin),
+            estado: st.text
+        });
+
+        html += `
+        <tr>
+            <td>${fsa.name}</td>
+            <td>📌 ${format(hito)}</td>
+            <td>🟢 ${format(inicio)}</td>
+            <td>🔴 ${format(fin)}</td>
+            <td><span class="badge ${st.color}">${st.text}</span></td>
+        </tr>
+        `;
+    });
+
+    html += "</table>";
+
+    document.getElementById("tabla").innerHTML = html;
+}
+
+function limpiar(){
+
+    document.getElementById("nombre").value = "";
+    document.getElementById("fecha").value = "";
+    document.getElementById("tabla").innerHTML = "";
+    dataGlobal = [];
+
+}
+
+async function guardarPDF() {
+
+    const { jsPDF } = window.jspdf;
+
+    // Captura toda la página
+    const elemento = document.body;
+
+    const canvas = await html2canvas(elemento, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#eef2f7"
+    });
+
+    const imgData = canvas.toDataURL("image/png");
+
+    const pdf = new jsPDF("p", "mm", "a4");
+
+    const anchoPDF = 210;
+    const altoImg = canvas.height * anchoPDF / canvas.width;
+
+    pdf.addImage(imgData, "PNG", 0, 0, anchoPDF, altoImg);
+
+    pdf.save("Reporte_FSA.pdf");
+}
+</script>
+
+</body>
+</html>
