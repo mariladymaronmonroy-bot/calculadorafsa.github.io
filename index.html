@@ -130,7 +130,14 @@ footer{
     id="nombre"
     placeholder="Ingrese el nombre del niño(a)"
     style="width:320px;"
-><br>
+>
+<br><br>
+
+<label><strong>Edad actual:</strong></label>
+<span id="edadActual" style="font-size:18px;color:#0d6efd;font-weight:bold;">-</span>
+
+<br>
+
 <h3>📅 Seleccione fecha de nacimiento</h3>
 <input type="date" id="fecha">
 
@@ -200,6 +207,12 @@ function calcular(){
 
     const [anio, mes, dia] = f.split("-").map(Number);
     let base = new Date(anio, mes - 1, dia);
+
+
+const edad = calcularEdad(base);
+
+document.getElementById("edadActual").innerHTML =
+    `${edad.años} año(s), ${edad.meses} mes(es) y ${edad.dias} día(s)`;
 
     const fsas = [
         {name:"FSA 2 meses: Aplicar durante los 7 días previos a que cumpla los 3 meses", n:2, special:false},
@@ -299,6 +312,53 @@ async function guardarPDF() {
     pdf.addImage(imgData, "PNG", 0, 0, anchoPDF, altoImg);
 
     pdf.save("Reporte_FSA.pdf");
+}
+
+function calcularEdad(fechaNacimiento){
+
+    const hoy = new Date();
+    const nacimiento = new Date(fechaNacimiento);
+
+    let años = hoy.getFullYear() - nacimiento.getFullYear();
+    let meses = hoy.getMonth() - nacimiento.getMonth();
+    let dias = hoy.getDate() - nacimiento.getDate();
+
+    // Ajustar días
+    if (dias < 0) {
+
+        // Último día del mes anterior
+        const ultimoMes = new Date(
+            hoy.getFullYear(),
+            hoy.getMonth(),
+            0
+        ).getDate();
+
+        dias += ultimoMes;
+        meses--;
+    }
+
+    // Ajustar meses
+    if (meses < 0) {
+        meses += 12;
+        años--;
+    }
+
+    // Calcular meses totales
+    let totalMeses =
+        (hoy.getFullYear() - nacimiento.getFullYear()) * 12 +
+        (hoy.getMonth() - nacimiento.getMonth());
+
+    if (hoy.getDate() < nacimiento.getDate()) {
+        totalMeses--;
+    }
+
+    return {
+        años,
+        meses,
+        dias,
+        totalMeses
+    };
+
 }
 </script>
 
