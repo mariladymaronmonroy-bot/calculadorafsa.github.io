@@ -149,6 +149,13 @@ footer{
 </div>
 
 <div id="tabla"></div>
+<div id="fechaReporte" style="
+    margin-top:20px;
+    text-align:right;
+    font-size:14px;
+    font-weight:bold;
+    color:#555;
+"></div>
 
 </div>
 
@@ -284,8 +291,13 @@ function limpiar(){
 
     document.getElementById("nombre").value = "";
     document.getElementById("fecha").value = "";
+
     document.getElementById("edadActual").innerHTML = "-";
+
+
     document.getElementById("tabla").innerHTML = "";
+document.getElementById("fechaReporte").innerHTML = "";
+
     dataGlobal = [];
 
 }
@@ -296,6 +308,19 @@ async function guardarPDF() {
 
     // Captura toda la página
     const elemento = document.body;
+const hoy = new Date();
+
+const fechaReporte =
+    String(hoy.getDate()).padStart(2,"0") + "/" +
+    String(hoy.getMonth()+1).padStart(2,"0") + "/" +
+    hoy.getFullYear();
+
+const horaReporte =
+    String(hoy.getHours()).padStart(2,"0") + ":" +
+    String(hoy.getMinutes()).padStart(2,"0");
+
+document.getElementById("fechaReporte").innerHTML =
+    "Reporte generado el " + fechaReporte + " a las " + horaReporte;
 
     const canvas = await html2canvas(elemento, {
         scale: 2,
